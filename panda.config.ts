@@ -332,6 +332,12 @@ export default defineConfig({
               _test: '0s',
             },
           },
+          arrowBobbleAnimation: {
+            value: {
+              base: '2000ms',
+              _test: '0s',
+            },
+          },
         },
       },
     },
