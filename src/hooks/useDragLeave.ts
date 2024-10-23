@@ -1,8 +1,7 @@
 import { debounce } from 'lodash'
 import { useEffect, useRef } from 'react'
-import { useDispatch } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { updateHoveringPathActionCreator } from '../actions/updateHoveringPath'
-import useSortedContext from './useSortedContext'
 
 const DEBOUNCE_DELAY = 50
 let hoverCount = 0
@@ -13,8 +12,9 @@ let debouncedSetHoveringPath: ReturnType<typeof debounce> | null = null
  */
 const useDragLeave = ({ isDeepHovering }: { isDeepHovering: boolean }) => {
   const dispatch = useDispatch()
+  const hoverZone = useSelector(state => state.hoverZone)
   const prevIsDeepHoveringRef = useRef(isDeepHovering)
-  const { hoveringOnDropEnd } = useSortedContext()
+  const prevHoverZone = useRef(hoverZone)
 
   // Initialize the debounced function if it hasn't been already
   if (!debouncedSetHoveringPath) {
@@ -25,33 +25,41 @@ const useDragLeave = ({ isDeepHovering }: { isDeepHovering: boolean }) => {
   }
 
   useEffect(() => {
+    if (prevHoverZone.current !== hoverZone) {
+      // Cancel any debounce function if hovering on subthought
+      prevHoverZone.current = hoverZone
+      debouncedSetHoveringPath?.cancel()
+      return
+    }
+
     if (isDeepHovering && !prevIsDeepHoveringRef.current) {
-      // Cursor has entered a drop target
+      // Cursor has entered a drop target, increase hover count
       hoverCount += 1
 
       // Cancel any pending debounce since we're over a drop target
       debouncedSetHoveringPath?.cancel()
-    } else if (!isDeepHovering && prevIsDeepHoveringRef.current) {
-      // Cursor has left a drop target
-      if (hoverCount === 0 && !hoveringOnDropEnd) {
+    } else {
+      // Cursor has left a drop target, decrease hover count
+      hoverCount = Math.max(hoverCount - 1, 0)
+      if (hoverCount === 0) {
         // No drop targets are being hovered over; start debounce
         debouncedSetHoveringPath?.()
       }
     }
 
     prevIsDeepHoveringRef.current = isDeepHovering
+    prevHoverZone.current = hoverZone
 
     return () => {
       // Cleanup on unmount
       if (isDeepHovering) {
-        hoverCount = Math.max(hoverCount - 1, 0)
-
         if (hoverCount === 0) {
           // Start debounce when unmounting and no more drop targets are hovered
           debouncedSetHoveringPath?.()
         }
       }
     }
-  }, [isDeepHovering, dispatch, hoveringOnDropEnd])
+  }, [isDeepHovering, dispatch, hoverZone])
 }
+
 export default useDragLeave

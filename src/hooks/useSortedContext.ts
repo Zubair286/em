@@ -42,6 +42,10 @@ const useSortedContext = () => {
     const isThought = item?.zone === 'Thoughts'
     const sourceThoughtId = head(item?.path || [])
 
+    const isSourceThoughtContextParent = attributeEquals(state, head(item?.path || []), '=sort', 'Alphabetical')
+    // Return if the sorted context parent is being dragged in sorted context
+    if (isSourceThoughtContextParent) return null
+
     const sourceThought = isThought ? getThoughtById(state, sourceThoughtId) : null
     return sourceThought
   })
